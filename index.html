@@ -180,6 +180,114 @@
   .meal-row .dish{font-size:14px;}
   .meal-row .num{font-size:13px;text-align:right;color:var(--muted);}
   .meal-row .num.strong{color:var(--ink);font-weight:600;}
+  .meal-block{margin-bottom:2px;}
+  .meal-row.swapped{border-color:var(--moss);background:#F3F6EA;}
+  .swapped-tag{
+    display:block;
+    font-size:11px;
+    color:var(--moss);
+    font-style:italic;
+    margin-top:2px;
+  }
+  .meal-swap{padding:4px 4px 14px;}
+  .meal-controls{
+    padding:4px 4px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .swap-select{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--muted);
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#fff;
+  }
+  .move-select{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    color:var(--ochre);
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px dashed var(--ochre);
+    background:#fff;
+  }
+
+  .arr-day{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:20px;
+  }
+  .arr-day-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .arr-day-head h3{
+    font-family:'Fraunces',serif;
+    font-size:18px;
+    color:var(--moss-dark);
+    margin:0;
+  }
+  .arr-day-totals{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .arr-day-totals b{color:var(--ink);}
+  .arr-slot{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .arr-slot.swapped{border-color:var(--moss);background:#F3F6EA;}
+  .arr-slot-top{
+    display:flex;
+    gap:10px;
+    align-items:baseline;
+    margin-bottom:4px;
+  }
+  .arr-tag{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--moss);
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .arr-dish{font-size:14px;}
+  .arr-macros{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--muted);
+    margin:6px 0 10px;
+  }
+  .arr-macros b{color:var(--ink);}
+  .arr-controls{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  @media(min-width:640px){
+    .arr-controls{flex-direction:row;}
+    .arr-controls select{flex:1;}
+  }
   .day-total{
     display:flex;
     justify-content:flex-end;
@@ -633,6 +741,7 @@ function btn(id,label){
 }
 btn('ingredients','Ingredients');
 btn('builder','Build a Meal');
+btn('arranger','Meal Arranger');
 days.forEach((d,i)=>btn('day'+i, d.name));
 
 // Ingredients section
@@ -666,21 +775,32 @@ flatIngredients.forEach((item,i)=>item.id = 'ing'+i);
 
 let currentMeal = []; // [{id, qty}]
 let savedMeals = [];
+let dayOverrides = {}; // key "d{dayIndex}_m{mealIndex}" -> [tag, dish, kcal, carb, sourceMealName]
 const LOCAL_KEY = 'ketoPlan_savedMeals';
 const GH_TOKEN_KEY = 'ketoPlan_ghToken';
 const GH_REPO = 'WizardBoxHub/KetoApp';
 const GH_PATH = 'saved-meals.json';
 const GH_BRANCH = 'main';
 
+function applyLoadedState(parsed){
+  if(Array.isArray(parsed)){
+    // legacy format: just a list of saved meals
+    savedMeals = parsed;
+  } else if(parsed && typeof parsed === 'object'){
+    savedMeals = Array.isArray(parsed.meals) ? parsed.meals : [];
+    dayOverrides = (parsed.overrides && typeof parsed.overrides === 'object') ? parsed.overrides : {};
+  }
+}
+
 try{
   const local = localStorage.getItem(LOCAL_KEY);
   if(local){
-    savedMeals = JSON.parse(local);
+    applyLoadedState(JSON.parse(local));
   } else {
     const seed = document.getElementById('saved-meals-data');
-    if(seed && seed.textContent.trim()) savedMeals = JSON.parse(seed.textContent);
+    if(seed && seed.textContent.trim()) applyLoadedState(JSON.parse(seed.textContent));
   }
-}catch(e){ savedMeals = []; }
+}catch(e){ savedMeals = []; dayOverrides = {}; }
 
 let buildHTML = `
   <h2 class="section-title">Build a Meal</h2>
@@ -837,7 +957,7 @@ function setSyncStatus(state, detail){
   else if(state==='off'){ el.textContent = 'Saved on this device'; }
 }
 
-async function pushMealsToGitHub(meals){
+async function pushMealsToGitHub(){
   const token = localStorage.getItem(GH_TOKEN_KEY);
   if(!token) { setSyncStatus('local'); return; }
   setSyncStatus('syncing');
@@ -850,9 +970,10 @@ async function pushMealsToGitHub(meals){
     if(getRes.ok){ const data = await getRes.json(); sha = data.sha; }
     else if(getRes.status !== 404){ throw new Error('read '+getRes.status); }
 
-    const jsonStr = JSON.stringify(meals, null, 2);
+    const payload = { meals: savedMeals, overrides: dayOverrides };
+    const jsonStr = JSON.stringify(payload, null, 2);
     const content = btoa(unescape(encodeURIComponent(jsonStr)));
-    const body = { message:`Update saved meals (${meals.length})`, content, branch:GH_BRANCH };
+    const body = { message:`Update saved meals & day swaps`, content, branch:GH_BRANCH };
     if(sha) body.sha = sha;
 
     const putRes = await fetch(apiUrl, {
@@ -871,9 +992,9 @@ async function pushMealsToGitHub(meals){
   }
 }
 
-function persistSavedMeals(){
-  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(savedMeals)); }catch(e){}
-  pushMealsToGitHub(savedMeals);
+function persistState(){
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify({ meals: savedMeals, overrides: dayOverrides })); }catch(e){}
+  pushMealsToGitHub();
 }
 
 async function tryLoadFromGitHub(){
@@ -883,9 +1004,11 @@ async function tryLoadFromGitHub(){
     const res = await fetch(url);
     if(!res.ok) return;
     const remote = await res.json();
-    if(Array.isArray(remote) && remote.length && savedMeals.length===0){
-      savedMeals = remote;
+    if(savedMeals.length===0 && Object.keys(dayOverrides).length===0){
+      applyLoadedState(remote);
       renderSavedMeals();
+      days.forEach((d,i)=>renderDaySection(i));
+      renderArranger();
     }
   }catch(e){ /* no backup yet, or offline — that's fine */ }
 }
@@ -915,7 +1038,7 @@ function renderSavedMeals(){
 function deleteSavedMeal(i){
   savedMeals.splice(i,1);
   renderSavedMeals();
-  persistSavedMeals();
+  persistState();
 }
 
 buildSection.querySelector('#bt-reset').addEventListener('click', ()=>{
@@ -937,7 +1060,7 @@ buildSection.querySelector('#bt-save').addEventListener('click', ()=>{
   nameInput.value = '';
   renderPicked();
   renderSavedMeals();
-  persistSavedMeals();
+  persistState();
 });
 buildSection.querySelector('#gh-toggle').addEventListener('click', ()=>{
   const panel = document.getElementById('gh-panel');
@@ -950,7 +1073,7 @@ buildSection.querySelector('#gh-connect-btn').addEventListener('click', ()=>{
   localStorage.setItem(GH_TOKEN_KEY, token);
   input.value = '';
   updateGhButtonLabel();
-  pushMealsToGitHub(savedMeals); // immediate backup + connectivity check
+  pushMealsToGitHub(); // immediate backup + connectivity check
 });
 buildSection.querySelector('#gh-disconnect-btn').addEventListener('click', ()=>{
   localStorage.removeItem(GH_TOKEN_KEY);
@@ -978,42 +1101,253 @@ updateGhButtonLabel();
 setSyncStatus(localStorage.getItem(GH_TOKEN_KEY) ? 'local' : 'local');
 tryLoadFromGitHub();
 
-// Day sections
+// Day sections (read-only view — arranging happens in the Meal Arranger section)
+const daySections = [];
 days.forEach((d,i)=>{
   const sec = document.createElement('section');
   sec.id = 'day'+i;
-  const carbPct = Math.min(100, (d.carb/25)*100);
-  const kcalPct = Math.min(100, (d.kcal/1850)*100);
+  main.appendChild(sec);
+  daySections.push(sec);
+});
+
+// Meal Arranger section
+const arrangerSection = document.createElement('section');
+arrangerSection.id = 'arranger';
+main.appendChild(arrangerSection);
+
+// Normalize overrides so old array format, old object format, and the new richer format all work.
+function normalizeOverride(ov){
+  if(!ov) return null;
+  if(Array.isArray(ov)){
+    return { tag: ov[0], dish: ov[1], kcal: ov[2], carb: ov[3], protein: null, fat: null, note: ov[4] || null, savedName: ov[4] || null, lines: null };
+  }
+  return {
+    tag: ov.tag, dish: ov.dish, kcal: ov.kcal, carb: ov.carb,
+    protein: (ov.protein!==undefined ? ov.protein : null),
+    fat: (ov.fat!==undefined ? ov.fat : null),
+    note: ov.note || null, savedName: ov.savedName || null,
+    lines: ov.lines || null
+  };
+}
+
+// Returns a plain object: {tag,dish,kcal,carb,protein,fat,lines}. protein/fat/lines are
+// null for the original static plan meals, since that data was never tracked per-ingredient.
+function getEffectiveMeal(dayIndex, mealIndex){
+  const key = `d${dayIndex}_m${mealIndex}`;
+  const ov = normalizeOverride(dayOverrides[key]);
+  if(ov) return { tag: ov.tag, dish: ov.dish, kcal: ov.kcal, carb: ov.carb, protein: ov.protein, fat: ov.fat, lines: ov.lines };
+  const [tag,dish,kcal,carb] = days[dayIndex].meals[mealIndex];
+  return { tag, dish, kcal, carb, protein: null, fat: null, lines: null };
+}
+
+function macroCell(val){
+  return (val===null || val===undefined) ? '—' : val.toFixed(1);
+}
+function macroKcal(val){
+  return (val===null || val===undefined) ? '—' : Math.round(val);
+}
+
+function savedMealOptionsHTML(selectedName){
+  if(savedMeals.length===0) return `<option value="">No saved meals yet — build one first</option>`;
+  return savedMeals.map((m,idx)=>
+    `<option value="${idx}"${m.name===selectedName ? ' selected':''}>${m.name} (${Math.round(m.totals.kcal)} kcal, ${m.totals.carb.toFixed(1)}g carb)</option>`
+  ).join('');
+}
+
+function moveOptionsHTML(curDay, curMeal){
+  let out = '';
+  days.forEach((dd,di)=>{
+    dd.meals.forEach((mm,mi)=>{
+      if(di===curDay && mi===curMeal) return;
+      out += `<option value="${di}_${mi}">${dd.name} – ${mm[0]}</option>`;
+    });
+  });
+  return out;
+}
+
+function moveMealSlot(day1, meal1, day2, meal2){
+  if(day1===day2 && meal1===meal2) return;
+  const key1 = `d${day1}_m${meal1}`;
+  const key2 = `d${day2}_m${meal2}`;
+  const c1 = getEffectiveMeal(day1, meal1);
+  const c2 = getEffectiveMeal(day2, meal2);
+  const origTag1 = days[day1].meals[meal1][0];
+  const origTag2 = days[day2].meals[meal2][0];
+  dayOverrides[key1] = { tag: origTag1, dish: c2.dish, kcal: c2.kcal, carb: c2.carb, protein: c2.protein, fat: c2.fat, lines: c2.lines, note: `moved from ${days[day2].name} – ${origTag2}` };
+  dayOverrides[key2] = { tag: origTag2, dish: c1.dish, kcal: c1.kcal, carb: c1.carb, protein: c1.protein, fat: c1.fat, lines: c1.lines, note: `moved from ${days[day1].name} – ${origTag1}` };
+  refreshAll(day1, day2);
+}
+
+function swapForSavedMeal(dayIndex, mealIndex, savedIdx){
+  const key = `d${dayIndex}_m${mealIndex}`;
+  if(savedIdx === ''){
+    delete dayOverrides[key];
+  } else {
+    const m = savedMeals[parseInt(savedIdx,10)];
+    if(m){
+      const origTag = days[dayIndex].meals[mealIndex][0];
+      dayOverrides[key] = {
+        tag: origTag, dish: m.name, kcal: m.totals.kcal, carb: m.totals.carb,
+        protein: m.totals.protein, fat: m.totals.fat,
+        note: `from saved meal: ${m.name}`, savedName: m.name, lines: m.lines || null
+      };
+    }
+  }
+  refreshAll(dayIndex);
+}
+
+function resetAllOverrides(){
+  if(!confirm('Revert every swapped or moved meal back to the original 7-day plan?')) return;
+  dayOverrides = {};
+  refreshAll();
+}
+
+function refreshAll(day1, day2){
+  if(day1===undefined){
+    days.forEach((d,i)=>renderDaySection(i));
+  } else {
+    renderDaySection(day1);
+    if(day2!==undefined && day2!==day1) renderDaySection(day2);
+  }
+  renderArranger();
+  persistState();
+}
+
+function renderDaySection(dayIndex){
+  const d = days[dayIndex];
+  const sec = daySections[dayIndex];
+  const effectiveMeals = d.meals.map((_,j)=>getEffectiveMeal(dayIndex,j));
+  const totalKcal = effectiveMeals.reduce((s,m)=>s+m.kcal,0);
+  const totalCarb = effectiveMeals.reduce((s,m)=>s+m.carb,0);
+  const carbPct = Math.min(100, (totalCarb/25)*100);
+  const kcalPct = Math.min(100, (totalKcal/1850)*100);
+
   let html = `
     <div class="day-header">
       <div>
         <h2 class="section-title">${d.name}</h2>
-        <p class="section-sub">Breakfast, lunch, snack, dinner</p>
+        <p class="section-sub">Breakfast, lunch, snack, dinner — arrange meals in the Meal Arranger tab</p>
       </div>
       <div class="gauges">
         <div class="gauge">
           <div class="label">Calories</div>
           <div class="bar"><div class="fill" style="width:${kcalPct}%"></div></div>
-          <div class="val">${d.kcal} kcal</div>
+          <div class="val">${Math.round(totalKcal)} kcal</div>
         </div>
         <div class="gauge">
           <div class="label">Net Carbs (of 25g)</div>
           <div class="bar"><div class="fill carb" style="width:${carbPct}%"></div></div>
-          <div class="val">${d.carb} g</div>
+          <div class="val">${totalCarb.toFixed(1)} g</div>
         </div>
       </div>
     </div>
     <div class="meal-grid">`;
-  d.meals.forEach(([tag,dish,kcal,carb])=>{
-    html += `<div class="meal-row"><div class="tag">${tag}</div><div class="dish">${dish}</div><div class="num strong">${kcal} kcal</div><div class="num">${carb}g carb</div></div>`;
+  const addedLines = [];
+  effectiveMeals.forEach((m,j)=>{
+    const key = `d${dayIndex}_m${j}`;
+    const ov = normalizeOverride(dayOverrides[key]);
+    if(ov && ov.lines && ov.lines.length){ addedLines.push({tag:m.tag, name:ov.savedName || m.dish, lines:ov.lines}); }
+    html += `
+      <div class="meal-row${ov ? ' swapped':''}">
+        <div class="tag">${m.tag}</div>
+        <div class="dish">${m.dish}${ov ? `<span class="swapped-tag">${ov.note}</span>` : ''}</div>
+        <div class="num strong">${Math.round(m.kcal)} kcal</div>
+        <div class="num">${m.carb.toFixed(1)}g carb</div>
+      </div>`;
   });
-  html += `</div><div class="day-total"><span>${d.kcal} kcal</span><span>${d.carb}g net carbs</span></div>`;
+  html += `</div><div class="day-total"><span>${Math.round(totalKcal)} kcal</span><span>${totalCarb.toFixed(1)}g net carbs</span></div>`;
   html += `<div class="shop-card"><h3>Shopping list — ${d.name}</h3><ul>`;
   d.shop.forEach(([n,a])=>{ html += `<li>${n}<span>${a}</span></li>`; });
-  html += `</ul></div>`;
+  html += `</ul>`;
+  if(addedLines.length){
+    html += `<h3 style="margin-top:16px">Also buy for your custom meals</h3><ul>`;
+    addedLines.forEach(entry=>{
+      entry.lines.forEach(line=>{
+        html += `<li>${line.n} <span class="note" style="font-style:normal">(${entry.tag}: ${entry.name})</span><span>${line.qty} ${line.unit}</span></li>`;
+      });
+    });
+    html += `</ul><p class="section-sub" style="margin-top:8px">This list can't automatically remove ingredients for meals you swapped out — cross those off yourself if you're skipping them.</p>`;
+  }
+  html += `</div>`;
   sec.innerHTML = html;
-  main.appendChild(sec);
-});
+}
+
+function renderArranger(){
+  let html = `
+    <h2 class="section-title">Meal Arranger</h2>
+    <p class="section-sub">Swap any slot for one of your saved meals, or move meals between days — kcal, net carbs, protein, and fat update everywhere automatically.</p>
+    <button id="arr-reset" style="margin-bottom:20px;padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;">Reset all swaps &amp; moves</button>
+  `;
+  days.forEach((d,dayIndex)=>{
+    const effectiveMeals = d.meals.map((_,j)=>getEffectiveMeal(dayIndex,j));
+    const totalKcal = effectiveMeals.reduce((s,m)=>s+m.kcal,0);
+    const totalCarb = effectiveMeals.reduce((s,m)=>s+m.carb,0);
+    const knownProtein = effectiveMeals.every(m=>m.protein!==null);
+    const knownFat = effectiveMeals.every(m=>m.fat!==null);
+    const totalProtein = knownProtein ? effectiveMeals.reduce((s,m)=>s+m.protein,0) : null;
+    const totalFat = knownFat ? effectiveMeals.reduce((s,m)=>s+m.fat,0) : null;
+
+    html += `<div class="arr-day">
+      <div class="arr-day-head">
+        <h3>${d.name}</h3>
+        <div class="arr-day-totals">
+          <span><b>${Math.round(totalKcal)}</b> kcal</span>
+          <span><b>${totalCarb.toFixed(1)}</b>g carb</span>
+          <span><b>${macroCell(totalProtein)}</b>${totalProtein!==null?'g':''} pro</span>
+          <span><b>${macroCell(totalFat)}</b>${totalFat!==null?'g':''} fat</span>
+        </div>
+      </div>`;
+
+    effectiveMeals.forEach((m,mealIndex)=>{
+      const key = `d${dayIndex}_m${mealIndex}`;
+      const ov = normalizeOverride(dayOverrides[key]);
+      html += `
+        <div class="arr-slot${ov ? ' swapped':''}">
+          <div class="arr-slot-top">
+            <span class="arr-tag">${m.tag}</span>
+            <span class="arr-dish">${m.dish}</span>
+          </div>
+          ${ov ? `<div class="swapped-tag">${ov.note}</div>` : ''}
+          <div class="arr-macros">
+            <span><b>${macroKcal(m.kcal)}</b> kcal</span>
+            <span><b>${macroCell(m.carb)}</b>g carb</span>
+            <span><b>${macroCell(m.protein)}</b>${m.protein!==null?'g':''} pro</span>
+            <span><b>${macroCell(m.fat)}</b>${m.fat!==null?'g':''} fat</span>
+          </div>
+          <div class="arr-controls">
+            <select class="swap-select" data-day="${dayIndex}" data-meal="${mealIndex}">
+              <option value="">— revert to original —</option>
+              ${savedMealOptionsHTML(ov ? ov.savedName : null)}
+            </select>
+            <select class="move-select" data-day="${dayIndex}" data-meal="${mealIndex}">
+              <option value="">Swap with…</option>
+              ${moveOptionsHTML(dayIndex, mealIndex)}
+            </select>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+  arrangerSection.innerHTML = html;
+
+  arrangerSection.querySelector('#arr-reset').addEventListener('click', resetAllOverrides);
+  arrangerSection.querySelectorAll('.swap-select').forEach(sel=>{
+    sel.addEventListener('change', (e)=>{
+      swapForSavedMeal(parseInt(e.target.dataset.day,10), parseInt(e.target.dataset.meal,10), e.target.value);
+    });
+  });
+  arrangerSection.querySelectorAll('.move-select').forEach(sel=>{
+    sel.addEventListener('change', (e)=>{
+      const val = e.target.value;
+      if(!val) return;
+      const [td, tm] = val.split('_').map(Number);
+      moveMealSlot(parseInt(e.target.dataset.day,10), parseInt(e.target.dataset.meal,10), td, tm);
+    });
+  });
+}
+
+days.forEach((d,i)=>renderDaySection(i));
+renderArranger();
 
 function show(id){
   document.querySelectorAll('section').forEach(s=>s.classList.toggle('active', s.id===id));
