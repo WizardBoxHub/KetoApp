@@ -346,6 +346,69 @@
   }
   .save-bar button:hover{opacity:.9;}
 
+  .sync-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:2px 0 10px;
+  }
+  .sync-status{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .sync-status.ok{color:var(--moss);font-weight:600;}
+  .sync-status.err{color:#8C3B2E;font-weight:600;}
+  .gh-toggle{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:12px;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .gh-toggle:hover{border-color:var(--moss);color:var(--moss-dark);}
+  .gh-panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:18px;
+  }
+  .gh-panel code{
+    background:#F5F6EE;
+    padding:1px 6px;
+    border-radius:4px;
+    font-size:12px;
+  }
+  .gh-panel input[type=password]{
+    width:100%;
+    padding:10px 14px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    background:#fff;
+    margin-bottom:10px;
+  }
+  .gh-panel button{
+    padding:8px 14px;
+    border-radius:8px;
+    border:1px solid var(--moss);
+    background:var(--moss);
+    color:#fff;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    margin-right:8px;
+  }
+  .gh-panel button#gh-disconnect-btn{
+    background:var(--card);
+    color:var(--muted);
+    border-color:var(--line);
+  }
+
   .saved-row{
     background:var(--card);
     border:1px solid var(--line);
@@ -603,9 +666,20 @@ flatIngredients.forEach((item,i)=>item.id = 'ing'+i);
 
 let currentMeal = []; // [{id, qty}]
 let savedMeals = [];
+const LOCAL_KEY = 'ketoPlan_savedMeals';
+const GH_TOKEN_KEY = 'ketoPlan_ghToken';
+const GH_REPO = 'WizardBoxHub/KetoApp';
+const GH_PATH = 'saved-meals.json';
+const GH_BRANCH = 'main';
+
 try{
-  const seed = document.getElementById('saved-meals-data');
-  if(seed && seed.textContent.trim()) savedMeals = JSON.parse(seed.textContent);
+  const local = localStorage.getItem(LOCAL_KEY);
+  if(local){
+    savedMeals = JSON.parse(local);
+  } else {
+    const seed = document.getElementById('saved-meals-data');
+    if(seed && seed.textContent.trim()) savedMeals = JSON.parse(seed.textContent);
+  }
 }catch(e){ savedMeals = []; }
 
 let buildHTML = `
@@ -627,6 +701,20 @@ let buildHTML = `
     <input type="text" id="meal-name" placeholder="Name this meal (e.g. Tuesday lunch)">
     <button id="bt-save">Save meal</button>
     <button id="bt-download">Download HTML with saved meals</button>
+  </div>
+  <div class="sync-row">
+    <span id="sync-status" class="sync-status"></span>
+    <button id="gh-toggle" class="gh-toggle">⚙ GitHub backup</button>
+  </div>
+  <div class="gh-panel" id="gh-panel" style="display:none">
+    <p class="section-sub" style="margin:0 0 8px">
+      Paste a <strong>fine-grained</strong> GitHub token scoped only to the
+      <code>${GH_REPO}</code> repo (Contents: Read and write) to auto-backup
+      saved meals there on every save. The token is stored only in this browser, never sent anywhere but GitHub.
+    </p>
+    <input type="password" id="gh-token-input" placeholder="github_pat_...">
+    <button id="gh-connect-btn">Connect</button>
+    <button id="gh-disconnect-btn">Disconnect</button>
   </div>
 
   <div id="saved-meals-list"></div>
@@ -737,6 +825,77 @@ function recalcTotals(){
   }
 }
 
+function setSyncStatus(state, detail){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  el.classList.remove('ok','err');
+  if(state==='saving'){ el.textContent = 'Saving…'; }
+  else if(state==='local'){ el.textContent = 'Saved on this device'; }
+  else if(state==='syncing'){ el.textContent = 'Backing up to GitHub…'; }
+  else if(state==='ok'){ el.textContent = 'Saved · backed up to GitHub'; el.classList.add('ok'); }
+  else if(state==='err'){ el.textContent = 'Saved locally · GitHub backup failed'+(detail?` (${detail})`:''); el.classList.add('err'); }
+  else if(state==='off'){ el.textContent = 'Saved on this device'; }
+}
+
+async function pushMealsToGitHub(meals){
+  const token = localStorage.getItem(GH_TOKEN_KEY);
+  if(!token) { setSyncStatus('local'); return; }
+  setSyncStatus('syncing');
+  try{
+    const apiUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}`;
+    let sha;
+    const getRes = await fetch(apiUrl+`?ref=${GH_BRANCH}`, {
+      headers:{ Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json' }
+    });
+    if(getRes.ok){ const data = await getRes.json(); sha = data.sha; }
+    else if(getRes.status !== 404){ throw new Error('read '+getRes.status); }
+
+    const jsonStr = JSON.stringify(meals, null, 2);
+    const content = btoa(unescape(encodeURIComponent(jsonStr)));
+    const body = { message:`Update saved meals (${meals.length})`, content, branch:GH_BRANCH };
+    if(sha) body.sha = sha;
+
+    const putRes = await fetch(apiUrl, {
+      method:'PUT',
+      headers:{ Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json', 'Content-Type':'application/json' },
+      body: JSON.stringify(body)
+    });
+    if(!putRes.ok){
+      const errBody = await putRes.json().catch(()=>({}));
+      throw new Error(errBody.message || ('write '+putRes.status));
+    }
+    setSyncStatus('ok');
+  }catch(e){
+    console.warn('GitHub backup failed:', e);
+    setSyncStatus('err', e.message);
+  }
+}
+
+function persistSavedMeals(){
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(savedMeals)); }catch(e){}
+  pushMealsToGitHub(savedMeals);
+}
+
+async function tryLoadFromGitHub(){
+  // Only used to hydrate a fresh device/browser that has no local copy yet.
+  try{
+    const url = `https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/${GH_PATH}?t=${Date.now()}`;
+    const res = await fetch(url);
+    if(!res.ok) return;
+    const remote = await res.json();
+    if(Array.isArray(remote) && remote.length && savedMeals.length===0){
+      savedMeals = remote;
+      renderSavedMeals();
+    }
+  }catch(e){ /* no backup yet, or offline — that's fine */ }
+}
+
+function updateGhButtonLabel(){
+  const btn = document.getElementById('gh-toggle');
+  const connected = !!localStorage.getItem(GH_TOKEN_KEY);
+  if(btn) btn.textContent = connected ? '⚙ GitHub backup (connected)' : '⚙ GitHub backup';
+}
+
 function renderSavedMeals(){
   const el = document.getElementById('saved-meals-list');
   if(savedMeals.length===0){ el.innerHTML=''; return; }
@@ -756,6 +915,7 @@ function renderSavedMeals(){
 function deleteSavedMeal(i){
   savedMeals.splice(i,1);
   renderSavedMeals();
+  persistSavedMeals();
 }
 
 buildSection.querySelector('#bt-reset').addEventListener('click', ()=>{
@@ -777,6 +937,25 @@ buildSection.querySelector('#bt-save').addEventListener('click', ()=>{
   nameInput.value = '';
   renderPicked();
   renderSavedMeals();
+  persistSavedMeals();
+});
+buildSection.querySelector('#gh-toggle').addEventListener('click', ()=>{
+  const panel = document.getElementById('gh-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+buildSection.querySelector('#gh-connect-btn').addEventListener('click', ()=>{
+  const input = document.getElementById('gh-token-input');
+  const token = input.value.trim();
+  if(!token){ alert('Paste your GitHub token first.'); return; }
+  localStorage.setItem(GH_TOKEN_KEY, token);
+  input.value = '';
+  updateGhButtonLabel();
+  pushMealsToGitHub(savedMeals); // immediate backup + connectivity check
+});
+buildSection.querySelector('#gh-disconnect-btn').addEventListener('click', ()=>{
+  localStorage.removeItem(GH_TOKEN_KEY);
+  updateGhButtonLabel();
+  setSyncStatus('local');
 });
 buildSection.querySelector('#bt-download').addEventListener('click', ()=>{
   const dataScript = document.getElementById('saved-meals-data');
@@ -795,6 +974,9 @@ buildSection.querySelector('#bt-download').addEventListener('click', ()=>{
 
 renderPicked();
 renderSavedMeals();
+updateGhButtonLabel();
+setSyncStatus(localStorage.getItem(GH_TOKEN_KEY) ? 'local' : 'local');
+tryLoadFromGitHub();
 
 // Day sections
 days.forEach((d,i)=>{
