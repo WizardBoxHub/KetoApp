@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7-Day Keto Kitchen Plan</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3C4B34">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Keto Plan">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F0F2E6;
+    --card:#FBFBF5;
+    --ink:#1F251C;
+    --moss:#55694A;
+    --moss-dark:#3C4B34;
+    --ochre:#BD8A2A;
+    --line:#DBE0CC;
+    --muted:#6B7462;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding-bottom:60px;
+  }
+  header{
+    padding:48px 24px 32px;
+    max-width:900px;
+    margin:0 auto;
+    text-align:left;
+  }
+  header .eyebrow{
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--moss);
+    font-weight:600;
+    margin-bottom:10px;
+  }
+  header h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(32px,5vw,48px);
+    margin:0 0 10px;
+    line-height:1.05;
+    color:var(--moss-dark);
+  }
+  header p{
+    max-width:560px;
+    color:var(--muted);
+    font-size:15px;
+    line-height:1.55;
+    margin:0;
+  }
+  nav{
+    max-width:900px;
+    margin:0 auto 36px;
+    padding:0 24px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  nav button{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 16px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--muted);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  nav button:hover{border-color:var(--moss);color:var(--moss-dark);}
+  nav button.active{
+    background:var(--moss);
+    border-color:var(--moss);
+    color:#fff;
+  }
+  main{max-width:900px;margin:0 auto;padding:0 24px;}
+  section{display:none;}
+  section.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  h2.section-title{
+    font-family:'Fraunces',serif;
+    font-size:24px;
+    font-weight:600;
+    color:var(--moss-dark);
+    margin:0 0 4px;
+  }
+  .section-sub{color:var(--muted);font-size:13px;margin:0 0 24px;}
+
+  .cat-block{margin-bottom:28px;}
+  .cat-block h3{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ochre);
+    margin:0 0 10px;
+    font-weight:600;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--card);
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--muted);
+    padding:10px 14px;
+    border-bottom:1px solid var(--line);
+    background:#F5F6EE;
+  }
+  td{
+    padding:10px 14px;
+    font-size:14px;
+    border-bottom:1px solid var(--line);
+  }
+  tr:last-child td{border-bottom:none;}
+  td.amt{color:var(--muted);text-align:right;max-width:220px;}
+  td.note{color:var(--muted);font-size:12px;font-style:italic;text-align:left;}
+
+  .day-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:20px;
+  }
+  .gauges{display:flex;gap:20px;}
+  .gauge{width:150px;}
+  .gauge .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+  .gauge .bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;}
+  .gauge .fill{height:100%;border-radius:4px;background:var(--moss);}
+  .gauge .fill.carb{background:var(--ochre);}
+  .gauge .val{font-size:13px;font-weight:600;margin-top:4px;color:var(--ink);}
+
+  .meal-grid{display:grid;gap:10px;margin-bottom:28px;}
+  .meal-row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    display:grid;
+    grid-template-columns:90px 1fr 70px 70px;
+    gap:12px;
+    align-items:center;
+  }
+  .meal-row .tag{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--moss);
+    font-weight:700;
+  }
+  .meal-row .dish{font-size:14px;}
+  .meal-row .num{font-size:13px;text-align:right;color:var(--muted);}
+  .meal-row .num.strong{color:var(--ink);font-weight:600;}
+  .day-total{
+    display:flex;
+    justify-content:flex-end;
+    gap:24px;
+    padding:10px 16px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--moss-dark);
+  }
+
+  .shop-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px;
+  }
+  .shop-card h3{
+    font-family:'Fraunces',serif;
+    font-size:16px;
+    margin:0 0 12px;
+    color:var(--moss-dark);
+  }
+  .shop-card ul{
+    margin:0;
+    padding:0;
+    list-style:none;
+    columns:2;
+    column-gap:24px;
+  }
+  .shop-card li{
+    font-size:14px;
+    padding:5px 0;
+    border-bottom:1px dashed var(--line);
+    break-inside:avoid;
+  }
+  .shop-card li span{color:var(--muted);float:right;font-size:13px;}
+
+  .builder-total{
+    position:sticky;
+    top:12px;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    gap:28px;
+    background:var(--moss-dark);
+    color:#fff;
+    border-radius:12px;
+    padding:14px 20px;
+    margin-bottom:24px;
+    box-shadow:0 6px 20px rgba(60,75,52,.25);
+  }
+  .builder-total .bt-item .label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    opacity:.75;
+  }
+  .builder-total .bt-val{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    font-weight:600;
+  }
+  .builder-total button{
+    margin-left:auto;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.3);
+    color:#fff;
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .builder-total button:hover{background:rgba(255,255,255,.22);}
+  .qty-input{
+    width:56px;
+    padding:5px 6px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  .qty-input:focus{outline:2px solid var(--moss);outline-offset:1px;}
+
+  .builder-total{flex-wrap:wrap;transition:background .2s ease;}
+  .builder-total.over-limit{background:#8C3B2E;box-shadow:0 6px 20px rgba(140,59,46,.35);}
+  .limit-warning{
+    display:none;
+    background:#FCEBE6;
+    border:1px solid #E3A48F;
+    color:#8C3B2E;
+    font-size:13px;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:10px;
+    margin:-14px 0 22px;
+  }
+
+  .empty-hint{
+    color:var(--muted);
+    font-size:14px;
+    padding:16px;
+    background:var(--card);
+    border:1px dashed var(--line);
+    border-radius:10px;
+    text-align:center;
+  }
+  .picked-list{margin-bottom:18px;display:flex;flex-direction:column;gap:8px;}
+  .picked-row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    display:grid;
+    grid-template-columns:1fr 60px 1fr 28px;
+    gap:12px;
+    align-items:center;
+  }
+  .picked-name{font-size:14px;font-weight:600;}
+  .picked-unit{display:block;font-size:11px;color:var(--muted);font-weight:400;}
+  .picked-macros{display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+  .picked-macros b{color:var(--ink);}
+  .remove-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:14px;
+    cursor:pointer;
+    padding:4px;
+  }
+  .remove-btn:hover{color:#8C3B2E;}
+
+  .save-bar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:8px;
+  }
+  .save-bar input[type=text]{
+    flex:1;
+    min-width:180px;
+    padding:10px 14px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    background:var(--card);
+  }
+  .save-bar button{
+    padding:10px 16px;
+    border-radius:8px;
+    border:1px solid var(--moss);
+    background:var(--moss);
+    color:#fff;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .save-bar button#bt-download{
+    background:var(--card);
+    color:var(--moss-dark);
+  }
+  .save-bar button:hover{opacity:.9;}
+
+  .saved-row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    display:grid;
+    grid-template-columns:1fr 1fr 28px;
+    gap:12px;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .saved-name{font-size:14px;font-weight:600;}
+  .saved-macros{display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+  .saved-macros b{color:var(--ink);}
+
+  .chip-cat{margin-bottom:18px;}
+  .chip-cat h3{
+    font-family:'Fraunces',serif;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ochre);
+    margin:0 0 8px;
+    font-weight:600;
+  }
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 14px;
+    font-size:13px;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .chip:hover{border-color:var(--moss);background:#EFF2E4;}
+
+  footer{
+    max-width:900px;
+    margin:40px auto 0;
+    padding:0 24px;
+    font-size:12px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  @media(max-width:600px){
+    .meal-row{grid-template-columns:70px 1fr 55px 55px;}
+    .shop-card ul{columns:1;}
+    .picked-row{grid-template-columns:1fr 50px 28px;}
+    .picked-macros{grid-column:1/3;order:3;}
+    .saved-row{grid-template-columns:1fr 28px;}
+    .saved-macros{grid-column:1/2;order:3;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Meat-free · Fish-free · Nightshade-free</div>
+  <h1>7-Day Keto Kitchen Plan</h1>
+  <p>Your full ingredient reference, daily menus, and a shopping list broken out per day so you only buy what that day's meals need.</p>
+</header>
+
+<nav id="nav"></nav>
+<main id="main"></main>
+<script id="saved-meals-data" type="application/json">[]</script>
+
+<footer>
+  Estimates only, not lab-precise. Net carb target: under 20–25g/day. Calories run moderate-low by design — add extra fat (oil, cheese, nuts) on hungrier days rather than carbs. Track skin/symptom response over 2–3 weeks, especially with dairy.
+</footer>
+
+<script>
+const ingredients = {
+  "Protein": [["Eggs","2–8/day"],["Tofu (firm)","100–225 g/day"],["Tempeh","100 g, few×/week"],["Shellfish","170–225 g||optional — conflicts with your fish exclusion"],["Full-fat cheese","50–80 g/day"],["Greek yogurt (plain)","100–150 g, few×/week"],["Cream cheese","30–50 g"],["Butter/ghee","1–4 tbsp/day"]],
+  "Fat": [["Olive oil","2–8 tbsp/day"],["Avocado oil","2–6 tbsp/day"],["Coconut oil","1–4 tbsp/day"],["MCT oil","1–4 tbsp/day"],["Avocado","0.5–2/day"],["Olives","10–30 pieces"],["Heavy cream","1–3 tbsp/day"]],
+  "Vegetable": [["Spinach/kale/lettuce/arugula/chard","100–300 g"],["Broccoli","100–250 g"],["Cauliflower","100–300 g"],["Zucchini","100–300 g"],["Cucumber","100–300 g"],["Celery","100–200 g"],["Cabbage","100–300 g"],["Asparagus","100–250 g"],["Bok choy","100–300 g"],["Brussels sprouts","1–1.5 cups"],["Mushrooms","100–200 g"],["Radishes","50–150 g"],["Bell peppers","Moderate||nightshade — use caution"]],
+  "Nuts/Seeds": [["Macadamias","30–60 g"],["Pecans","15–50 g"],["Walnuts","20–30 g"],["Chia seeds","20–30 g"],["Flaxseed (ground)","20–30 g"],["Hemp seeds/hearts","30–50 g"],["Pumpkin seeds","20–30 g"]],
+  "Herbs/Seasoning": [["Garlic, ginger","As desired"],["Fresh herbs (basil, parsley, cilantro, etc.)","Unlimited"],["Turmeric, pepper, cumin, chili flakes, salt","To taste"],["Lemon/lime juice","1–2 tbsp/day"],["Vinegar (ACV, balsamic)","Small amounts"],["Mustard","As desired"],["Tamari/coconut aminos","As desired"]]
+};
+
+// Per-unit nutrition estimates for the meal builder: kcal, net carb (g), protein (g), fat (g)
+const nutrition = {
+  "Protein": [
+    {n:"Eggs", unit:"egg", kcal:70, carb:0.5, protein:6, fat:5},
+    {n:"Tofu (firm)", unit:"100g", kcal:80, carb:2, protein:8, fat:4.5},
+    {n:"Tempeh", unit:"100g", kcal:190, carb:9, protein:19, fat:11},
+    {n:"Shellfish", unit:"100g", kcal:95, carb:1, protein:20, fat:1},
+    {n:"Full-fat cheese", unit:"30g", kcal:110, carb:1, protein:7, fat:9},
+    {n:"Greek yogurt (plain)", unit:"100g", kcal:97, carb:4, protein:9, fat:5},
+    {n:"Cream cheese", unit:"30g", kcal:100, carb:2, protein:2, fat:10},
+    {n:"Butter/ghee", unit:"tbsp", kcal:100, carb:0, protein:0, fat:11}
+  ],
+  "Fat": [
+    {n:"Olive oil", unit:"tbsp", kcal:120, carb:0, protein:0, fat:14},
+    {n:"Avocado oil", unit:"tbsp", kcal:120, carb:0, protein:0, fat:14},
+    {n:"Coconut oil", unit:"tbsp", kcal:120, carb:0, protein:0, fat:14},
+    {n:"MCT oil", unit:"tbsp", kcal:115, carb:0, protein:0, fat:14},
+    {n:"Avocado", unit:"whole", kcal:240, carb:4, protein:3, fat:22},
+    {n:"Olives", unit:"10 pieces", kcal:40, carb:1, protein:0, fat:4},
+    {n:"Heavy cream", unit:"tbsp", kcal:50, carb:0.4, protein:0.3, fat:5}
+  ],
+  "Vegetable": [
+    {n:"Leafy greens (spinach/kale/lettuce/arugula)", unit:"100g", kcal:25, carb:1.5, protein:2.5, fat:0.3},
+    {n:"Broccoli", unit:"100g", kcal:35, carb:4, protein:3, fat:0.4},
+    {n:"Cauliflower", unit:"100g", kcal:25, carb:3, protein:2, fat:0.3},
+    {n:"Zucchini", unit:"100g", kcal:17, carb:3, protein:1.2, fat:0.3},
+    {n:"Cucumber", unit:"100g", kcal:15, carb:2, protein:0.7, fat:0.1},
+    {n:"Celery", unit:"100g", kcal:15, carb:1.5, protein:0.7, fat:0.2},
+    {n:"Cabbage", unit:"100g", kcal:25, carb:4, protein:1.3, fat:0.1},
+    {n:"Asparagus", unit:"100g", kcal:20, carb:2, protein:2.2, fat:0.2},
+    {n:"Bok choy", unit:"100g", kcal:13, carb:1, protein:1.5, fat:0.2},
+    {n:"Brussels sprouts", unit:"100g", kcal:43, carb:5, protein:3.4, fat:0.3},
+    {n:"Mushrooms", unit:"100g", kcal:22, carb:2, protein:3.1, fat:0.3},
+    {n:"Radishes", unit:"100g", kcal:16, carb:2, protein:0.7, fat:0.1},
+    {n:"Bell peppers", unit:"100g", kcal:31, carb:4, protein:1, fat:0.3}
+  ],
+  "Nuts/Seeds": [
+    {n:"Macadamias", unit:"30g", kcal:200, carb:2, protein:2.2, fat:21},
+    {n:"Pecans", unit:"30g", kcal:200, carb:2, protein:2.7, fat:21},
+    {n:"Walnuts", unit:"30g", kcal:195, carb:2, protein:4.5, fat:19.5},
+    {n:"Chia seeds", unit:"30g", kcal:140, carb:1, protein:5, fat:9},
+    {n:"Flaxseed (ground)", unit:"30g", kcal:150, carb:0.5, protein:5, fat:12},
+    {n:"Hemp seeds/hearts", unit:"30g", kcal:165, carb:1, protein:9, fat:13},
+    {n:"Pumpkin seeds", unit:"30g", kcal:165, carb:2, protein:9, fat:14}
+  ],
+  "Herbs/Seasoning": [
+    {n:"Garlic, ginger", unit:"tsp", kcal:5, carb:1, protein:0.2, fat:0},
+    {n:"Fresh herbs", unit:"tbsp", kcal:0, carb:0, protein:0, fat:0},
+    {n:"Turmeric, pepper, cumin, chili flakes, salt", unit:"tsp", kcal:5, carb:1, protein:0.2, fat:0.1},
+    {n:"Lemon/lime juice", unit:"tbsp", kcal:4, carb:1, protein:0.1, fat:0},
+    {n:"Vinegar (ACV, balsamic)", unit:"tbsp", kcal:3, carb:0, protein:0, fat:0},
+    {n:"Mustard", unit:"tsp", kcal:5, carb:0.5, protein:0.3, fat:0.3},
+    {n:"Tamari/coconut aminos", unit:"tbsp", kcal:10, carb:1, protein:2, fat:0}
+  ]
+};
+const MEAL_LIMITS = { carb: 25, kcal: 700 };
+
+const days = [
+{
+  name:"Day 1", kcal:1430, carb:19,
+  meals:[
+    ["Breakfast","3 scrambled eggs in 1 tbsp butter, ½ cup spinach, 30g feta",420,3],
+    ["Lunch","2 cups arugula, ½ avocado, 30g walnuts, 2 tbsp olive oil, lemon",480,6],
+    ["Snack","15g macadamias + 5 olives",130,1],
+    ["Dinner","150g tofu, 1 cup broccoli, 1 cup zucchini, 1 tbsp coconut oil, garlic/ginger, tamari",400,9]
+  ],
+  shop:[["Eggs","3"],["Butter","1 tbsp"],["Spinach","½ cup"],["Feta","30g"],["Arugula","2 cups"],["Avocado","1"],["Walnuts","30g"],["Olive oil","2 tbsp"],["Lemon","1"],["Macadamias","15g"],["Olives","5 pcs"],["Tofu (firm)","150g"],["Broccoli","1 cup"],["Zucchini","1 cup"],["Coconut oil","1 tbsp"],["Garlic","to taste"],["Ginger","to taste"],["Tamari","to taste"]]
+},
+{
+  name:"Day 2", kcal:1330, carb:22,
+  meals:[
+    ["Breakfast","150g Greek yogurt, 1 tbsp chia, 1 tbsp hemp seeds, cinnamon",260,6],
+    ["Lunch","1.5 cups riced cauliflower in 1 tbsp ghee, 100g tempeh, herbs",430,8],
+    ["Snack","½ avocado with salt/pepper",160,2],
+    ["Dinner","Zucchini noodles, 2 tbsp cream cheese, 30g parmesan, olive oil, basil",480,6]
+  ],
+  shop:[["Greek yogurt","150g"],["Chia seeds","1 tbsp"],["Hemp seeds","1 tbsp"],["Cauliflower","1.5 cups"],["Ghee","1 tbsp"],["Tempeh","100g"],["Avocado","½"],["Zucchini","1–2 cups (noodled)"],["Cream cheese","2 tbsp"],["Parmesan","30g"],["Olive oil","1 tbsp"],["Basil","to taste"]]
+},
+{
+  name:"Day 3", kcal:1530, carb:19,
+  meals:[
+    ["Breakfast","3 eggs fried in 1 tbsp butter, ½ avocado",470,3],
+    ["Lunch","Spinach & kale, 50g cheddar, 20g pecans, olive oil dressing",470,5],
+    ["Snack","Celery sticks + 30g cream cheese",130,3],
+    ["Dinner","150g tofu, 1 cup broccoli, coconut oil, coconut cream, turmeric, ginger",460,8]
+  ],
+  shop:[["Eggs","3"],["Butter","1 tbsp"],["Avocado","½"],["Spinach","handful"],["Kale","handful"],["Cheddar","50g"],["Pecans","20g"],["Olive oil","2 tbsp"],["Celery","2–3 stalks"],["Cream cheese","30g"],["Tofu (firm)","150g"],["Broccoli","1 cup"],["Coconut oil","1 tbsp"],["Coconut cream","2 tbsp"],["Turmeric","to taste"],["Ginger","to taste"]]
+},
+{
+  name:"Day 4", kcal:1350, carb:22,
+  meals:[
+    ["Breakfast","150g tofu scramble with turmeric, spinach, 1 tbsp olive oil",300,5],
+    ["Lunch","Cabbage & cucumber slaw, 30g macadamias, olive oil + ACV, 50g feta",470,6],
+    ["Snack","10 olives + 15g walnuts",160,2],
+    ["Dinner","Roasted asparagus & cauliflower, 100g tempeh, 1 tbsp coconut oil",420,9]
+  ],
+  shop:[["Tofu (firm)","150g"],["Turmeric","to taste"],["Spinach","handful"],["Olive oil","3 tbsp"],["Cabbage","1–2 cups"],["Cucumber","1 cup"],["Macadamias","30g"],["Apple cider vinegar","small amount"],["Feta","50g"],["Olives","10 pcs"],["Walnuts","15g"],["Asparagus","1 cup"],["Cauliflower","1 cup"],["Tempeh","100g"],["Coconut oil","1 tbsp"]]
+},
+{
+  name:"Day 5", kcal:1470, carb:19,
+  meals:[
+    ["Breakfast","3 eggs + 30g mozzarella + mushrooms sautéed in butter",440,3],
+    ["Lunch","Cucumber, olives, feta, olive oil, herbs, ½ avocado",500,7],
+    ["Snack","20g pumpkin seeds",150,2],
+    ["Dinner","Bok choy & tofu stir-fry in coconut oil, tamari, ginger",380,7]
+  ],
+  shop:[["Eggs","3"],["Mozzarella","30g"],["Mushrooms","handful"],["Butter","1 tbsp"],["Cucumber","1 cup"],["Olives","10 pcs"],["Feta","30g"],["Olive oil","2 tbsp"],["Fresh herbs","to taste"],["Avocado","½"],["Pumpkin seeds","20g"],["Bok choy","1–2 cups"],["Tofu (firm)","150g"],["Coconut oil","1 tbsp"],["Tamari","to taste"],["Ginger","to taste"]]
+},
+{
+  name:"Day 6", kcal:1300, carb:24,
+  meals:[
+    ["Breakfast","150g Greek yogurt, 1 tbsp flaxseed, 15g walnuts",300,6],
+    ["Lunch","Broccoli & cauliflower gratin, 2 tbsp cream, 30g parmesan",420,8],
+    ["Snack","½ avocado, lime, salt",160,2],
+    ["Dinner","Tempeh & zucchini/mushroom skewers, olive oil marinade, herbs",420,8]
+  ],
+  shop:[["Greek yogurt","150g"],["Flaxseed","1 tbsp"],["Walnuts","15g"],["Broccoli","½ cup"],["Cauliflower","½ cup"],["Heavy cream","2 tbsp"],["Parmesan","30g"],["Avocado","½"],["Lime","1"],["Tempeh","100g"],["Zucchini","1 cup"],["Mushrooms","1 cup"],["Olive oil","2 tbsp"],["Fresh herbs","to taste"]]
+},
+{
+  name:"Day 7", kcal:1480, carb:18,
+  meals:[
+    ["Breakfast","3 eggs, 1 tbsp ghee, ½ cup kale, 30g cheddar",440,3],
+    ["Lunch","150g tofu, cauliflower rice, cucumber, olives, olive oil",470,7],
+    ["Snack","15g macadamias + 15g pumpkin seeds",190,2],
+    ["Dinner","Zucchini & mushroom sauté in butter, 50g feta, herbs",380,6]
+  ],
+  shop:[["Eggs","3"],["Ghee","1 tbsp"],["Kale","½ cup"],["Cheddar","30g"],["Tofu (firm)","150g"],["Cauliflower","1 cup"],["Cucumber","1 cup"],["Olives","8 pcs"],["Olive oil","2 tbsp"],["Macadamias","15g"],["Pumpkin seeds","15g"],["Zucchini","1 cup"],["Mushrooms","1 cup"],["Butter","1 tbsp"],["Feta","50g"],["Fresh herbs","to taste"]]
+}
+];
+
+const nav = document.getElementById('nav');
+const main = document.getElementById('main');
+
+function btn(id,label){
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.dataset.target = id;
+  b.onclick = () => show(id);
+  nav.appendChild(b);
+}
+btn('ingredients','Ingredients');
+btn('builder','Build a Meal');
+days.forEach((d,i)=>btn('day'+i, d.name));
+
+// Ingredients section
+const ingSection = document.createElement('section');
+ingSection.id = 'ingredients';
+let ingHTML = `<h2 class="section-title">Master Ingredient List</h2><p class="section-sub">Everything allowed, by category, with daily amount ranges.</p>`;
+for(const cat in ingredients){
+  ingHTML += `<div class="cat-block"><h3>${cat}</h3><table><thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead><tbody>`;
+  ingredients[cat].forEach(([n,a])=>{
+    const parts = a.split('||');
+    const amtHTML = parts.length > 1
+      ? `${parts[0]}<div class="note">${parts[1]}</div>`
+      : parts[0];
+    ingHTML += `<tr><td>${n}</td><td class="amt">${amtHTML}</td></tr>`;
+  });
+  ingHTML += `</tbody></table></div>`;
+}
+ingSection.innerHTML = ingHTML;
+main.appendChild(ingSection);
+
+// Build a Meal section
+const buildSection = document.createElement('section');
+buildSection.id = 'builder';
+
+// flat list with stable ids for lookup
+const flatIngredients = [];
+for(const cat in nutrition){
+  nutrition[cat].forEach(item=>flatIngredients.push({...item, cat}));
+}
+flatIngredients.forEach((item,i)=>item.id = 'ing'+i);
+
+let currentMeal = []; // [{id, qty}]
+let savedMeals = [];
+try{
+  const seed = document.getElementById('saved-meals-data');
+  if(seed && seed.textContent.trim()) savedMeals = JSON.parse(seed.textContent);
+}catch(e){ savedMeals = []; }
+
+let buildHTML = `
+  <h2 class="section-title">Build a Meal</h2>
+  <p class="section-sub">Tap an ingredient to add it, then set the quantity.</p>
+
+  <div class="builder-total" id="builder-total">
+    <div class="bt-item"><div class="label">Calories</div><div class="bt-val" id="bt-kcal">0</div></div>
+    <div class="bt-item"><div class="label">Net Carbs</div><div class="bt-val" id="bt-carb">0 g</div></div>
+    <div class="bt-item"><div class="label">Protein</div><div class="bt-val" id="bt-protein">0 g</div></div>
+    <div class="bt-item"><div class="label">Fat</div><div class="bt-val" id="bt-fat">0 g</div></div>
+    <button id="bt-reset">Reset</button>
+  </div>
+  <div class="limit-warning" id="limit-warning"></div>
+
+  <div class="picked-list" id="picked-list"></div>
+
+  <div class="save-bar">
+    <input type="text" id="meal-name" placeholder="Name this meal (e.g. Tuesday lunch)">
+    <button id="bt-save">Save meal</button>
+    <button id="bt-download">Download HTML with saved meals</button>
+  </div>
+
+  <div id="saved-meals-list"></div>
+
+  <p class="section-sub" style="margin-top:32px">Tap to add</p>
+  <div class="chip-wrap" id="chip-wrap"></div>
+`;
+buildSection.innerHTML = buildHTML;
+main.appendChild(buildSection);
+
+// chips grouped by category
+const chipWrap = buildSection.querySelector('#chip-wrap');
+for(const cat in nutrition){
+  const catDiv = document.createElement('div');
+  catDiv.className = 'chip-cat';
+  catDiv.innerHTML = `<h3>${cat}</h3>`;
+  const row = document.createElement('div');
+  row.className = 'chip-row';
+  nutrition[cat].forEach(item=>{
+    const full = flatIngredients.find(f=>f.n===item.n && f.cat===cat);
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = item.n;
+    chip.dataset.id = full.id;
+    chip.onclick = () => addIngredient(full.id);
+    row.appendChild(chip);
+  });
+  catDiv.appendChild(row);
+  chipWrap.appendChild(catDiv);
+}
+
+function addIngredient(id){
+  if(currentMeal.find(m=>m.id===id)) return;
+  currentMeal.push({id, qty:1});
+  renderPicked();
+}
+function removeIngredient(id){
+  currentMeal = currentMeal.filter(m=>m.id!==id);
+  renderPicked();
+}
+function setQty(id, qty){
+  const line = currentMeal.find(m=>m.id===id);
+  if(line) line.qty = Math.max(0, qty);
+  renderPicked();
+}
+
+function renderPicked(){
+  const list = buildSection.querySelector('#picked-list');
+  if(currentMeal.length === 0){
+    list.innerHTML = `<p class="empty-hint">Nothing added yet — tap an ingredient below to start.</p>`;
+  } else {
+    list.innerHTML = currentMeal.map(line=>{
+      const item = flatIngredients.find(f=>f.id===line.id);
+      const q = line.qty;
+      const kcal = (item.kcal*q).toFixed(0);
+      const carb = (item.carb*q).toFixed(1);
+      const protein = (item.protein*q).toFixed(1);
+      const fat = (item.fat*q).toFixed(1);
+      return `<div class="picked-row">
+        <div class="picked-name">${item.n}<span class="picked-unit">per ${item.unit}</span></div>
+        <input type="number" min="0" step="0.5" value="${q}" class="qty-input" onchange="setQty('${item.id}', parseFloat(this.value)||0)">
+        <div class="picked-macros">
+          <span><b>${kcal}</b> kcal</span>
+          <span><b>${carb}</b>g carb</span>
+          <span><b>${protein}</b>g pro</span>
+          <span><b>${fat}</b>g fat</span>
+        </div>
+        <button class="remove-btn" onclick="removeIngredient('${item.id}')">✕</button>
+      </div>`;
+    }).join('');
+  }
+  recalcTotals();
+}
+
+function mealTotals(meal){
+  let kcal=0, carb=0, protein=0, fat=0;
+  meal.forEach(line=>{
+    const item = flatIngredients.find(f=>f.id===line.id);
+    if(!item) return;
+    kcal += item.kcal*line.qty;
+    carb += item.carb*line.qty;
+    protein += item.protein*line.qty;
+    fat += item.fat*line.qty;
+  });
+  return {kcal, carb, protein, fat};
+}
+
+function recalcTotals(){
+  const t = mealTotals(currentMeal);
+  document.getElementById('bt-kcal').textContent = Math.round(t.kcal);
+  document.getElementById('bt-carb').textContent = t.carb.toFixed(1)+' g';
+  document.getElementById('bt-protein').textContent = t.protein.toFixed(1)+' g';
+  document.getElementById('bt-fat').textContent = t.fat.toFixed(1)+' g';
+
+  const totalEl = document.getElementById('builder-total');
+  const warnEl = document.getElementById('limit-warning');
+  const overCarb = t.carb > MEAL_LIMITS.carb;
+  const overKcal = t.kcal > MEAL_LIMITS.kcal;
+  totalEl.classList.toggle('over-limit', overCarb || overKcal);
+  if(overCarb || overKcal){
+    const bits = [];
+    if(overCarb) bits.push(`${(t.carb-MEAL_LIMITS.carb).toFixed(1)}g over the ${MEAL_LIMITS.carb}g net carb guide`);
+    if(overKcal) bits.push(`${Math.round(t.kcal-MEAL_LIMITS.kcal)} kcal over the ${MEAL_LIMITS.kcal} kcal guide`);
+    warnEl.textContent = '⚠ ' + bits.join(' · ');
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+
+function renderSavedMeals(){
+  const el = document.getElementById('saved-meals-list');
+  if(savedMeals.length===0){ el.innerHTML=''; return; }
+  el.innerHTML = `<h3 style="margin:24px 0 10px;font-family:'Fraunces',serif;font-size:16px;color:var(--moss-dark);">Saved meals</h3>` +
+    savedMeals.map((m,i)=>`
+      <div class="saved-row">
+        <div class="saved-name">${m.name}</div>
+        <div class="saved-macros">
+          <span><b>${Math.round(m.totals.kcal)}</b> kcal</span>
+          <span><b>${m.totals.carb.toFixed(1)}</b>g carb</span>
+          <span><b>${m.totals.protein.toFixed(1)}</b>g pro</span>
+          <span><b>${m.totals.fat.toFixed(1)}</b>g fat</span>
+        </div>
+        <button class="remove-btn" onclick="deleteSavedMeal(${i})">✕</button>
+      </div>`).join('');
+}
+function deleteSavedMeal(i){
+  savedMeals.splice(i,1);
+  renderSavedMeals();
+}
+
+buildSection.querySelector('#bt-reset').addEventListener('click', ()=>{
+  currentMeal = [];
+  document.getElementById('meal-name').value = '';
+  renderPicked();
+});
+buildSection.querySelector('#bt-save').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('meal-name');
+  const name = nameInput.value.trim() || `Meal ${savedMeals.length+1}`;
+  if(currentMeal.length===0){ alert('Add at least one ingredient first.'); return; }
+  const totals = mealTotals(currentMeal);
+  const lines = currentMeal.map(line=>{
+    const item = flatIngredients.find(f=>f.id===line.id);
+    return {n:item.n, unit:item.unit, qty:line.qty};
+  });
+  savedMeals.push({name, lines, totals});
+  currentMeal = [];
+  nameInput.value = '';
+  renderPicked();
+  renderSavedMeals();
+});
+buildSection.querySelector('#bt-download').addEventListener('click', ()=>{
+  const dataScript = document.getElementById('saved-meals-data');
+  dataScript.textContent = JSON.stringify(savedMeals);
+  const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([htmlContent], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'keto_plan_with_meals.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+renderPicked();
+renderSavedMeals();
+
+// Day sections
+days.forEach((d,i)=>{
+  const sec = document.createElement('section');
+  sec.id = 'day'+i;
+  const carbPct = Math.min(100, (d.carb/25)*100);
+  const kcalPct = Math.min(100, (d.kcal/1850)*100);
+  let html = `
+    <div class="day-header">
+      <div>
+        <h2 class="section-title">${d.name}</h2>
+        <p class="section-sub">Breakfast, lunch, snack, dinner</p>
+      </div>
+      <div class="gauges">
+        <div class="gauge">
+          <div class="label">Calories</div>
+          <div class="bar"><div class="fill" style="width:${kcalPct}%"></div></div>
+          <div class="val">${d.kcal} kcal</div>
+        </div>
+        <div class="gauge">
+          <div class="label">Net Carbs (of 25g)</div>
+          <div class="bar"><div class="fill carb" style="width:${carbPct}%"></div></div>
+          <div class="val">${d.carb} g</div>
+        </div>
+      </div>
+    </div>
+    <div class="meal-grid">`;
+  d.meals.forEach(([tag,dish,kcal,carb])=>{
+    html += `<div class="meal-row"><div class="tag">${tag}</div><div class="dish">${dish}</div><div class="num strong">${kcal} kcal</div><div class="num">${carb}g carb</div></div>`;
+  });
+  html += `</div><div class="day-total"><span>${d.kcal} kcal</span><span>${d.carb}g net carbs</span></div>`;
+  html += `<div class="shop-card"><h3>Shopping list — ${d.name}</h3><ul>`;
+  d.shop.forEach(([n,a])=>{ html += `<li>${n}<span>${a}</span></li>`; });
+  html += `</ul></div>`;
+  sec.innerHTML = html;
+  main.appendChild(sec);
+});
+
+function show(id){
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('active', s.id===id));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.target===id));
+}
+show('ingredients');
+
+// Register service worker for offline use
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
+  });
+}
+</script>
+
+</body>
+</html>
