@@ -1,1 +1,43 @@
-[]
+[
+  {
+    "name": "Test Meal",
+    "lines": [
+      {
+        "n": "Eggs",
+        "unit": "egg",
+        "qty": 4
+      },
+      {
+        "n": "Greek yogurt (plain)",
+        "unit": "100g",
+        "qty": 1
+      },
+      {
+        "n": "Butter/ghee",
+        "unit": "tbsp",
+        "qty": 1
+      },
+      {
+        "n": "Pumpkin seeds",
+        "unit": "30g",
+        "qty": 1
+      },
+      {
+        "n": "Garlic, ginger",
+        "unit": "tsp",
+        "qty": 1
+      },
+      {
+        "n": "Fresh herbs",
+        "unit": "tbsp",
+        "qty": 1
+      }
+    ],
+    "totals": {
+      "kcal": 647,
+      "carb": 9,
+      "protein": 42.2,
+      "fat": 50
+    }
+  }
+]
